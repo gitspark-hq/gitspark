@@ -5,7 +5,7 @@ streak alive, earn XP for commits / PRs / reviews / issues, and get an email bef
 if your streak is at risk.
 
 **Stack:** Next.js 16 (App Router) · Auth.js (GitHub OAuth) · Drizzle + Postgres (Supabase) ·
-Resend (email) · Vercel Cron.
+Resend (email) · GitHub Actions (hourly cron).
 
 ## Setup
 
@@ -75,8 +75,11 @@ first call to `/remind` sends one email; a second call sends none (`reminder_log
 ## Deploy
 
 Push to GitHub, import into Vercel, add every variable from `.env.example`, and update the GitHub
-OAuth App's callback URL to `https://<your-domain>/api/auth/callback/github`. `vercel.json`
-schedules the two cron jobs automatically.
+OAuth App's callback URL to `https://<your-domain>/api/auth/callback/github`.
+
+Hourly sync + reminders run from `.github/workflows/cron.yml` (Vercel's free plan only allows
+daily crons). Add two repo secrets: `APP_URL` (your Vercel URL) and `CRON_SECRET` (same value as
+on Vercel).
 
 ## Scripts
 

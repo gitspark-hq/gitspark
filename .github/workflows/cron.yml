@@ -1,0 +1,25 @@
+# Hourly sync + reminder trigger. Vercel's Hobby plan only allows daily crons,
+# so GitHub Actions calls the app's cron endpoints instead.
+#
+# Repo secrets required: APP_URL (e.g. https://gitstreak.vercel.app), CRON_SECRET
+name: Hourly cron
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync-and-remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync all users
+        run: |
+          curl --fail-with-body -sS -m 290 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/sync-all"
+      - name: Send streak reminders
+        run: |
+          curl --fail-with-body -sS -m 290 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/remind"
