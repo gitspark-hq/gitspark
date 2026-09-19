@@ -3,7 +3,6 @@ import { ArrowRight, Bell, Flame, Zap } from "lucide-react";
 import { auth, signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/nav";
-import { Logo } from "@/components/logo";
 import { GitHubIcon } from "@/components/github-icon";
 import { Heatmap } from "@/components/heatmap";
 import { addDays, toDateString } from "@/lib/streak";
@@ -40,9 +39,7 @@ export default async function Home() {
             Free · Open source · Read-only GitHub access
           </div>
 
-          <Logo size="lg" />
-
-          <h1 className="mt-6 max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl">
+          <h1 className="mt-2 max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl">
             Ship every day.
             <br />
             <span className="text-gradient">Keep the streak alive.</span>
