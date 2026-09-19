@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, accounts, sessions, verificationTokens } from "@/db/schema";
 
@@ -44,11 +44,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    // The adapter's createUser only persists standard fields; backfill the GitHub login.
-    async signIn({ user, profile }) {
+    async signIn({ user, profile, account }) {
+      // The adapter's createUser only persists standard fields; backfill the GitHub login.
       const login = (profile as { login?: string } | undefined)?.login;
       if (user.id && login) {
         await db.update(users).set({ githubLogin: login }).where(eq(users.id, user.id));
+      }
+      // The adapter writes the account row once, on first sign-in. If GitHub later revokes
+      // the token (secret rotated, user revoked access), a fresh sign-in must replace it.
+      if (account?.access_token) {
+        await db
+          .update(accounts)
+          .set({ access_token: account.access_token, scope: account.scope ?? null, token_type: account.token_type ?? null })
+          .where(and(eq(accounts.provider, account.provider), eq(accounts.providerAccountId, account.providerAccountId)));
       }
     },
   },

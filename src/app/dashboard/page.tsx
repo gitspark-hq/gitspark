@@ -10,6 +10,9 @@ import { Nav } from "@/components/nav";
 import { Heatmap } from "@/components/heatmap";
 import { SyncButton } from "@/components/sync-button";
 import { AutoSync } from "@/components/auto-sync";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { getGrade } from "@/lib/grade";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +42,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   const goalMet = doneToday >= goal;
   const neverSynced = !streakRow?.lastSyncedAt;
   const hoursLeft = 24 - local.hour;
+  const grade = await getGrade(userId);
 
   const totals = days.reduce(
     (acc, d) => ({
@@ -140,6 +144,29 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                 </p>
               </div>
             </section>
+
+            <Link href="/grade" className="block rounded-lg border border-border bg-card transition hover:bg-accent/40">
+              <div className="flex items-center justify-between px-5 py-3.5">
+                <h2 className="text-[14px] font-medium">Profile grade</h2>
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="border-t border-border px-5 py-4">
+                {grade ? (
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-mono text-3xl font-medium leading-none">{grade.accountGrade}</span>
+                    <span className="font-mono text-[13px] tabular-nums text-muted-foreground">{grade.accountScore}/100</span>
+                    <span className="ml-auto text-[12px] text-muted-foreground">{grade.scores.length} repos</span>
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground">Score your public repos the way a recruiter sees them.</p>
+                )}
+                {grade?.findings.patterns[0] ? (
+                  <p className="mt-2 truncate text-[12px] text-muted-foreground">
+                    Biggest fix: {grade.findings.patterns[0].check.title.toLowerCase()} · {grade.findings.patterns[0].count} repos
+                  </p>
+                ) : null}
+              </div>
+            </Link>
 
             <section className="rounded-lg border border-border bg-card">
               <header className="border-b border-border px-5 py-3.5">

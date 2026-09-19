@@ -120,6 +120,38 @@ export const reminderLog = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
 ).enableRLS();
 
+/** Cached profile grade (GitGrade rubric) per user. Recomputed on demand or when stale. */
+export const repoGrades = pgTable("repo_grades", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  accountScore: integer("account_score").notNull(),
+  accountGrade: text("account_grade").notNull(),
+  repos: jsonb("repos").$type<StoredRepoScore[]>().notNull(),
+  gradedAt: timestamp("graded_at", { mode: "date" }).notNull().defaultNow(),
+}).enableRLS();
+
+/** One graded repo as persisted. Check metadata is rehydrated from the registry by id. */
+export type StoredRepoScore = {
+  repo: {
+    id: number;
+    name: string;
+    full_name: string;
+    html_url: string;
+    description: string | null;
+    fork: boolean;
+    homepage: string | null;
+    topics: string[];
+    stargazers_count: number;
+    pushed_at: string | null;
+  };
+  score: number;
+  grade: string;
+  earned: number;
+  possible: number;
+  outcomes: { id: string; result: "pass" | "fail" | "na" }[];
+};
+
 export type RepoActivity = {
   repo: string; // owner/name
   isPrivate: boolean;

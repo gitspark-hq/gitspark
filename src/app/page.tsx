@@ -71,7 +71,7 @@ export default async function Home() {
             </div>
           </div>
 
-          <dl className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-3">
+          <dl className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             <Feature
               title="Matches GitHub exactly"
               body="Days follow GitHub's own calendar, so the streak here always agrees with the graph on your profile. Private contributions count."
@@ -79,6 +79,10 @@ export default async function Home() {
             <Feature
               title="Points for the work that matters"
               body="10 XP per commit, 30 per pull request, 20 per review, 5 per issue. Levels scale quadratically so they stay meaningful."
+            />
+            <Feature
+              title="A grade for your profile"
+              body="Every public repo scored out of 100 on thirteen hygiene checks — README, license, description, topics — ranked worst first with the exact fix."
             />
             <Feature
               title="One reminder, not a feed"

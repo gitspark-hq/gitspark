@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 export function AutoSync({ detectTimezone }: { detectTimezone: boolean }) {
   const router = useRouter();
   const ran = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (ran.current) return;
@@ -21,11 +22,20 @@ export function AutoSync({ detectTimezone }: { detectTimezone: boolean }) {
           body: JSON.stringify({ timezone: tz }),
         }).catch(() => undefined);
       }
-      await fetch("/api/sync", { method: "POST" }).catch(() => undefined);
+      const res = await fetch("/api/sync", { method: "POST" }).catch(() => null);
+      if (res && !res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? `Sync failed (${res.status})`);
+        return;
+      }
       router.replace("/dashboard");
       router.refresh();
     })();
   }, [detectTimezone, router]);
+
+  if (error) {
+    return <p className="max-w-xs text-right text-[13px] text-destructive">{error}</p>;
+  }
 
   return (
     <div className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3 text-[13px] text-muted-foreground">

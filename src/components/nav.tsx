@@ -16,6 +16,7 @@ export async function Nav() {
         {session?.user ? (
           <nav className="flex items-center gap-5 text-[13px]">
             <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">Dashboard</Link>
+            <Link href="/grade" className="text-muted-foreground hover:text-foreground">Grade</Link>
             <Link href="/settings" className="text-muted-foreground hover:text-foreground">Settings</Link>
             <form
               action={async () => {
