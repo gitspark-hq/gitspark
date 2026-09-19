@@ -6,7 +6,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { recomputeStreak } from "@/lib/sync";
+import { recomputeStreak, syncUser } from "@/lib/sync";
 
 const Settings = z.object({
   dailyGoal: z.coerce.number().int().min(1).max(50),
@@ -36,8 +36,13 @@ export async function saveSettings(_prev: SettingsState, formData: FormData): Pr
   }
 
   await db.update(users).set(parsed.data).where(eq(users.id, session.user.id));
-  // Goal changes affect what counts as a streak day.
-  await recomputeStreak(session.user.id, parsed.data.dailyGoal);
+  // Goal and timezone both change what counts as a streak day. A timezone change also
+  // re-buckets recent days, so re-sync; fall back to a recompute if GitHub is unreachable.
+  try {
+    await syncUser(session.user.id);
+  } catch {
+    await recomputeStreak(session.user.id, parsed.data.dailyGoal, parsed.data.timezone);
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/settings");

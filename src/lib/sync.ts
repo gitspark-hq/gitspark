@@ -1,8 +1,9 @@
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gt, gte } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, dailyContributions, streaks, users } from "@/db/schema";
-import { fetchDailyContributions, GitHubError, type FetchedDay } from "./github";
-import { addDays, computeStreak, toDateString } from "./streak";
+import { fetchDailyContributions, fetchLocalDays, GitHubError, type FetchedDay } from "./github";
+import { nowIn } from "./time";
+import { addDays, computeStreak } from "./streak";
 
 const FULL_SYNC_DAYS = 365;
 const INCREMENTAL_SYNC_DAYS = 7;
@@ -28,21 +29,30 @@ export async function syncUser(userId: string) {
   if (!token) throw new GitHubError("No GitHub token stored for user", 401);
 
   const [existing] = await db.select().from(streaks).where(eq(streaks.userId, userId)).limit(1);
-  const today = toDateString(new Date());
+  const today = nowIn(user.timezone).date; // user's local date
 
-  // History: wide windows (cheap, exact totals, estimated type split). First run only.
+  // History: wide windows over GitHub's UTC calendar (cheap; exact totals, estimated type
+  // split). Days near "now" get overwritten by the exact local-day fetch below. First run only.
   if (!existing?.lastSyncedAt) {
     const from = addDays(today, -(FULL_SYNC_DAYS - 1));
     const history = await fetchDailyContributions(token, user.githubLogin, from, today, 7);
     await upsertDays(userId, history);
   }
 
-  // Recent days: one call per day so the type split and repo list are exact.
-  const recentFrom = addDays(today, -(INCREMENTAL_SYNC_DAYS - 1));
-  const recent = await fetchDailyContributions(token, user.githubLogin, recentFrom, today, 1);
+  // Recent days: one call per *local* day, so counts are exact in the user's timezone and
+  // "today" rolls over at their midnight, not UTC's.
+  const recentDates = Array.from({ length: INCREMENTAL_SYNC_DAYS }, (_, i) =>
+    addDays(today, -(INCREMENTAL_SYNC_DAYS - 1 - i)),
+  );
+  const recent = await fetchLocalDays(token, user.githubLogin, recentDates, user.timezone);
   await upsertDays(userId, recent);
 
-  return recomputeStreak(userId, user.dailyGoal);
+  // A timezone change (or the old UTC-based sync) can leave rows dated after the local today.
+  await db
+    .delete(dailyContributions)
+    .where(and(eq(dailyContributions.userId, userId), gt(dailyContributions.date, today)));
+
+  return recomputeStreak(userId, user.dailyGoal, user.timezone);
 }
 
 async function upsertDays(userId: string, days: FetchedDay[]) {
@@ -65,8 +75,8 @@ async function upsertDays(userId: string, days: FetchedDay[]) {
   }
 }
 
-export async function recomputeStreak(userId: string, goal: number) {
-  const today = toDateString(new Date());
+export async function recomputeStreak(userId: string, goal: number, timezone: string) {
+  const today = nowIn(timezone).date;
   const since = addDays(today, -(FULL_SYNC_DAYS - 1));
   const rows = await db
     .select()

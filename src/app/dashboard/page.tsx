@@ -4,7 +4,8 @@ import { Lock } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { dailyContributions, streaks, users, type RepoActivity } from "@/db/schema";
-import { addDays, computeStreak, toDateString, XP_PER } from "@/lib/streak";
+import { addDays, computeStreak, XP_PER } from "@/lib/streak";
+import { nowIn, tzAbbrev } from "@/lib/time";
 import { Nav } from "@/components/nav";
 import { Heatmap } from "@/components/heatmap";
 import { SyncButton } from "@/components/sync-button";
@@ -21,7 +22,9 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const [streakRow] = await db.select().from(streaks).where(eq(streaks.userId, userId)).limit(1);
 
-  const today = toDateString(new Date());
+  const timezone = user?.timezone ?? "UTC";
+  const local = nowIn(timezone);
+  const today = local.date;
   const since = addDays(today, -364);
   const days = await db
     .select()
@@ -35,7 +38,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   const doneToday = todayRow?.total ?? 0;
   const goalMet = doneToday >= goal;
   const neverSynced = !streakRow?.lastSyncedAt;
-  const hoursLeft = 24 - new Date().getUTCHours();
+  const hoursLeft = 24 - local.hour;
 
   const totals = days.reduce(
     (acc, d) => ({
@@ -69,7 +72,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
             <p className="mt-0.5 text-[13px] text-muted-foreground">
               {streakRow?.lastSyncedAt ? `Synced ${relative(streakRow.lastSyncedAt)}` : "Not synced"}
               <span className="mx-1.5">·</span>
-              {formatDate(today)} UTC
+              {formatDate(today)} · {tzAbbrev(timezone)}
             </p>
           </div>
           {first === "1" || neverSynced ? <AutoSync detectTimezone={first === "1"} /> : <SyncButton />}
@@ -156,7 +159,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
         <section className="mt-4 rounded-lg border border-border bg-card">
           <header className="flex items-baseline justify-between border-b border-border px-5 py-3.5">
             <h2 className="text-[14px] font-medium">Contributions</h2>
-            <span className="text-[12px] text-muted-foreground">GitHub calendar · UTC</span>
+            <span className="text-[12px] text-muted-foreground">Days in {timezone.replace("_", " ")}</span>
           </header>
           <div className="px-5 py-4">
             <Heatmap counts={counts} today={today} goal={goal} />

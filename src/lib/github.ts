@@ -1,5 +1,6 @@
 import type { DayCounts } from "./streak";
 import type { RepoActivity } from "@/db/schema";
+import { localDayRange } from "./time";
 
 const GITHUB_GRAPHQL = "https://api.github.com/graphql";
 
@@ -158,4 +159,39 @@ export async function fetchDailyContributions(
   }
 
   return [...out.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Fetches each of `dates` (YYYY-MM-DD, interpreted in `timezone`) as its own
+ * window bounded by local midnight. Because the window is exactly one local
+ * day, the typed totals are exact for that day and their sum is the day's
+ * contribution count — independent of GitHub's UTC calendar buckets.
+ */
+export async function fetchLocalDays(
+  token: string,
+  login: string,
+  dates: string[],
+  timezone: string,
+): Promise<FetchedDay[]> {
+  const out: FetchedDay[] = [];
+  for (const date of dates) {
+    const { from, to } = localDayRange(date, timezone);
+    const c = await fetchWindow(token, login, from, to);
+    const commits = c.totalCommitContributions;
+    const prs = c.totalPullRequestContributions;
+    const reviews = c.totalPullRequestReviewContributions;
+    const issues = c.totalIssueContributions;
+    out.push({
+      date,
+      commits,
+      prs,
+      reviews,
+      issues,
+      // restrictedContributionsCount covers private activity not itemised above.
+      total: commits + prs + reviews + issues + c.restrictedContributionsCount,
+      repos: mergeRepos(c),
+      exact: true,
+    });
+  }
+  return out;
 }

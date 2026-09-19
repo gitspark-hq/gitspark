@@ -56,8 +56,11 @@ Resend (email) · GitHub Actions (hourly cron).
 
 **XP:** 10 / commit · 30 / PR · 20 / review · 5 / issue. Level = ⌊√(XP / 100)⌋.
 
-**Timezones:** streak days follow GitHub's calendar (UTC) so the app always agrees with the graph
-on your profile. Your timezone is only used to decide *when* to send the reminder.
+**Timezones:** "today" is the user's local date (auto-detected on first sign-in, editable in
+Settings). The last 7 days are fetched one local day at a time — `contributionsCollection(from, to)`
+bounded by local midnight — so counts are exact in the user's zone and the day rolls over at their
+midnight, not UTC's. Older history comes from GitHub's UTC calendar, which can differ by a few
+hours at day boundaries; it gets replaced by exact local days as the window advances.
 
 **Row Level Security:** every table has RLS enabled (`.enableRLS()` in `src/db/schema.ts`) with
 no policies, so Supabase's public Data API / `anon` key can't read anything. The app connects as

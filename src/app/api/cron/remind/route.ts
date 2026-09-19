@@ -5,7 +5,6 @@ import { db } from "@/db";
 import { dailyContributions, reminderLog, streaks, users } from "@/db/schema";
 import { assertCron } from "@/lib/cron";
 import { nowIn } from "@/lib/time";
-import { toDateString } from "@/lib/streak";
 import { streakReminderHtml, streakReminderSubject } from "@/emails/streak-reminder";
 
 export const maxDuration = 300;
@@ -14,8 +13,7 @@ export const maxDuration = 300;
  * Runs hourly. For each user whose local clock is at their chosen reminder hour
  * and who hasn't hit today's goal, send one email (de-duped via reminder_log).
  *
- * "Today" for the goal check is GitHub's UTC day, matching the streak logic.
- * The reminder *time* is local so it arrives in the evening for everyone.
+ * "Today" is the user's local date, matching the streak logic and the dashboard.
  */
 export async function GET(req: Request) {
   const denied = assertCron(req);
@@ -28,8 +26,6 @@ export async function GET(req: Request) {
   const resend = new Resend(apiKey);
 
   const now = new Date();
-  const utcToday = toDateString(now);
-  const hoursLeftUtc = 24 - now.getUTCHours();
 
   const candidates = await db
     .select({ user: users, streak: streaks })
@@ -55,7 +51,7 @@ export async function GET(req: Request) {
     const [today] = await db
       .select({ total: dailyContributions.total })
       .from(dailyContributions)
-      .where(and(eq(dailyContributions.userId, user.id), eq(dailyContributions.date, utcToday)))
+      .where(and(eq(dailyContributions.userId, user.id), eq(dailyContributions.date, local.date)))
       .limit(1);
     const doneToday = today?.total ?? 0;
     if (doneToday >= user.dailyGoal) { result.skipped++; continue; }
@@ -68,7 +64,7 @@ export async function GET(req: Request) {
         html: streakReminderHtml({
           name: user.name ?? user.githubLogin ?? "there",
           streak: streak?.currentStreak ?? 0,
-          hoursLeft: hoursLeftUtc,
+          hoursLeft: 24 - local.hour,
           goal: user.dailyGoal,
           doneToday,
           appUrl,
