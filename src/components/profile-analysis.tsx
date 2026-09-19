@@ -180,7 +180,7 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
       )}
 
       <p className="text-[12px] text-muted-foreground">
-        Runs entirely in your browser with Chrome&apos;s built-in Gemini Nano. Your profile data is not sent to any AI service.
+        Written on your device using the model built into Chrome. Your profile data is not sent to any AI service.
       </p>
     </div>
   );
@@ -195,11 +195,11 @@ function StatusLine({ status }: { status: Status }) {
     case "unavailable":
       return <>Built-in AI is present but the model is not available on this device.</>;
     case "downloadable":
-      return <>Gemini Nano is not downloaded yet. It is about 2 GB and downloads once.</>;
+      return <>The on-device model is not downloaded yet. It is about 2 GB and downloads once.</>;
     case "downloading":
       return <>Downloading the model. This only happens the first time.</>;
     case "ready":
-      return <>Gemini Nano is ready on this device.</>;
+      return <>Ready to write.</>;
     case "generating":
       return <>Writing your review.</>;
     case "error":
@@ -213,7 +213,7 @@ function Setup({ unsupported }: { unsupported: boolean }) {
       <p className="font-medium">How to turn this on</p>
       <p className="mt-2 text-muted-foreground">
         {unsupported
-          ? "Profile analysis uses Gemini Nano, which ships inside Google Chrome (version 138 or newer, desktop). Open this page in Chrome."
+          ? "Profile analysis uses the AI model built into Google Chrome (version 138 or newer, desktop). Open this page in Chrome."
           : "Chrome found the API but the model is switched off. Enable it once:"}
       </p>
       <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-muted-foreground">
