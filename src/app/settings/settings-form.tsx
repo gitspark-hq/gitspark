@@ -1,80 +1,70 @@
 "use client";
 
 import { useActionState } from "react";
-import { Bell, Check, Globe, Target } from "lucide-react";
 import { saveSettings, type SettingsState } from "./actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 type Props = {
   initial: { dailyGoal: number; timezone: string; reminderHour: number; remindersEnabled: boolean };
   timezones: string[];
 };
 
-const selectCls =
-  "h-9 rounded-md border border-input bg-white/[0.03] px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring";
+const field =
+  "h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring";
 
 export function SettingsForm({ initial, timezones }: Props) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(saveSettings, {});
 
   return (
-    <form action={action} className="divide-y divide-border/60">
-      <Row icon={<Target className="h-4 w-4" />} title="Daily goal" hint="Contributions per day — commits, PRs, reviews, or issues, same as GitHub's graph.">
-        <Input id="dailyGoal" name="dailyGoal" type="number" min={1} max={50} defaultValue={initial.dailyGoal} className="w-24 bg-white/[0.03]" />
+    <form action={action} className="divide-y divide-border">
+      <Row label="Daily goal" hint="Contributions per day. Commits, PRs, reviews and issues all count, same as GitHub.">
+        <input id="dailyGoal" name="dailyGoal" type="number" min={1} max={50} defaultValue={initial.dailyGoal} className={`${field} w-20`} />
       </Row>
 
-      <Row icon={<Globe className="h-4 w-4" />} title="Timezone" hint="Only used to decide when your reminder goes out.">
-        <select id="timezone" name="timezone" defaultValue={initial.timezone} className={`${selectCls} w-full max-w-xs`}>
+      <Row label="Timezone" hint="Used only to time the reminder email.">
+        <select id="timezone" name="timezone" defaultValue={initial.timezone} className={`${field} w-full max-w-xs`}>
           {timezones.map((tz) => (
             <option key={tz} value={tz}>{tz}</option>
           ))}
         </select>
       </Row>
 
-      <Row icon={<Bell className="h-4 w-4" />} title="Reminder" hint="Sent once a day, only if you haven't hit your goal yet.">
-        <div className="flex flex-wrap items-center gap-3">
-          <select id="reminderHour" name="reminderHour" defaultValue={initial.reminderHour} className={`${selectCls} w-28`}>
+      <Row label="Reminder" hint="One email, only on days your goal isn't met yet.">
+        <div className="flex flex-wrap items-center gap-4">
+          <select id="reminderHour" name="reminderHour" defaultValue={initial.reminderHour} className={`${field} w-24`}>
             {Array.from({ length: 24 }, (_, h) => (
               <option key={h} value={h}>
                 {h === 0 ? "12 AM" : h < 12 ? `${h} AM` : h === 12 ? "12 PM" : `${h - 12} PM`}
               </option>
             ))}
           </select>
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              name="remindersEnabled"
-              type="checkbox"
-              defaultChecked={initial.remindersEnabled}
-              className="h-4 w-4 rounded border-input accent-primary"
-            />
-            Email me
+          <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+            <input name="remindersEnabled" type="checkbox" defaultChecked={initial.remindersEnabled} className="h-3.5 w-3.5 accent-foreground" />
+            Enabled
           </label>
         </div>
       </Row>
 
-      <div className="flex items-center gap-3 pt-5">
-        <Button type="submit" disabled={pending} className="gap-2">
-          {pending ? "Saving" : "Save changes"}
-        </Button>
-        {state.ok ? (
-          <span className="inline-flex items-center gap-1 text-sm text-primary"><Check className="h-4 w-4" /> Saved</span>
-        ) : null}
-        {state.error ? <span className="text-sm text-destructive">{state.error}</span> : null}
+      <div className="flex items-center gap-3 py-4">
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex h-8 items-center rounded-md bg-foreground px-3 text-[13px] font-medium text-background hover:opacity-90 disabled:opacity-60"
+        >
+          {pending ? "Saving" : "Save"}
+        </button>
+        {state.ok ? <span className="text-[13px] text-success">Saved</span> : null}
+        {state.error ? <span className="text-[13px] text-destructive">{state.error}</span> : null}
       </div>
     </form>
   );
 }
 
-function Row({ icon, title, hint, children }: { icon: React.ReactNode; title: string; hint: string; children: React.ReactNode }) {
+function Row({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-3 py-5 first:pt-0 sm:grid-cols-[220px_1fr] sm:gap-6">
+    <div className="grid gap-2 py-4 sm:grid-cols-[200px_1fr] sm:gap-6">
       <div>
-        <Label className="flex items-center gap-2 text-sm font-semibold">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">{icon}</span>
-          {title}
-        </Label>
-        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{hint}</p>
+        <label className="text-[13px] font-medium">{label}</label>
+        <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{hint}</p>
       </div>
       <div className="flex items-center">{children}</div>
     </div>

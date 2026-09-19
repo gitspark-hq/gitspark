@@ -28,9 +28,9 @@ export function AutoSync({ detectTimezone }: { detectTimezone: boolean }) {
   }, [detectTimezone, router]);
 
   return (
-    <div className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+    <div className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3 text-[13px] text-muted-foreground">
       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      Pulling your last year of GitHub activity
+      Importing GitHub activity
     </div>
   );
 }

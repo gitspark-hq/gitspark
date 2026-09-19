@@ -3,20 +3,18 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-export function SyncButton({ label = "Sync" }: { label?: string }) {
+export function SyncButton() {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button
-        variant="outline"
-        size="sm"
+      <button
+        type="button"
         disabled={pending}
-        className="gap-2 border-border/70 bg-white/[0.03] hover:bg-white/[0.06]"
+        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-[13px] font-medium hover:bg-accent disabled:opacity-60"
         onClick={() =>
           start(async () => {
             setError(null);
@@ -31,8 +29,8 @@ export function SyncButton({ label = "Sync" }: { label?: string }) {
         }
       >
         <RefreshCw className={`h-3.5 w-3.5 ${pending ? "animate-spin" : ""}`} />
-        {pending ? "Syncing" : label}
-      </Button>
+        {pending ? "Syncing" : "Sync"}
+      </button>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );

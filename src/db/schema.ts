@@ -5,6 +5,7 @@ import {
   boolean,
   timestamp,
   date,
+  jsonb,
   primaryKey,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -84,6 +85,10 @@ export const dailyContributions = pgTable(
     reviews: integer("reviews").notNull().default(0),
     issues: integer("issues").notNull().default(0),
     total: integer("total").notNull().default(0),
+    /** Per-repo breakdown; only populated for days synced individually (recent days). */
+    repos: jsonb("repos").$type<RepoActivity[]>(),
+    /** True when commits/prs/reviews/issues are exact (1-day fetch) vs. estimated from a wider window. */
+    exact: boolean("exact").notNull().default(false),
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.date] }),
@@ -114,6 +119,15 @@ export const reminderLog = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
 ).enableRLS();
+
+export type RepoActivity = {
+  repo: string; // owner/name
+  isPrivate: boolean;
+  commits: number;
+  prs: number;
+  reviews: number;
+  issues: number;
+};
 
 export type User = typeof users.$inferSelect;
 export type DailyContribution = typeof dailyContributions.$inferSelect;

@@ -21,22 +21,18 @@ export default async function SettingsPage() {
   return (
     <>
       <Nav />
-      <main className="relative flex-1">
-        <div className="bg-glow pointer-events-none absolute inset-x-0 top-0 h-[300px]" />
-        <div className="relative mx-auto w-full max-w-2xl px-4 py-8">
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Tune your goal and when we nudge you.</p>
-          <div className="card-glass mt-6 rounded-2xl p-6">
-            <SettingsForm
-              initial={{
-                dailyGoal: user.dailyGoal,
-                timezone: user.timezone,
-                reminderHour: user.reminderHour,
-                remindersEnabled: user.remindersEnabled,
-              }}
-              timezones={timezones}
-            />
-          </div>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8">
+        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <div className="mt-5 rounded-lg border border-border bg-card px-5">
+          <SettingsForm
+            initial={{
+              dailyGoal: user.dailyGoal,
+              timezone: user.timezone,
+              reminderHour: user.reminderHour,
+              remindersEnabled: user.remindersEnabled,
+            }}
+            timezones={timezones}
+          />
         </div>
       </main>
     </>

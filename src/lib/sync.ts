@@ -1,7 +1,7 @@
 import { and, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, dailyContributions, streaks, users } from "@/db/schema";
-import { fetchDailyContributions, GitHubError } from "./github";
+import { fetchDailyContributions, GitHubError, type FetchedDay } from "./github";
 import { addDays, computeStreak, toDateString } from "./streak";
 
 const FULL_SYNC_DAYS = 365;
@@ -29,31 +29,40 @@ export async function syncUser(userId: string) {
 
   const [existing] = await db.select().from(streaks).where(eq(streaks.userId, userId)).limit(1);
   const today = toDateString(new Date());
-  const lookback = existing?.lastSyncedAt ? INCREMENTAL_SYNC_DAYS : FULL_SYNC_DAYS;
-  const from = addDays(today, -(lookback - 1));
 
-  const days = await fetchDailyContributions(token, user.githubLogin, from, today);
-
-  if (days.length) {
-    // Row-by-row upsert; at most 365 rows on first sync, 7 after that.
-    for (const d of days) {
-      await db
-        .insert(dailyContributions)
-        .values({ userId, ...d })
-        .onConflictDoUpdate({
-          target: [dailyContributions.userId, dailyContributions.date],
-          set: {
-            commits: d.commits,
-            prs: d.prs,
-            reviews: d.reviews,
-            issues: d.issues,
-            total: d.total,
-          },
-        });
-    }
+  // History: wide windows (cheap, exact totals, estimated type split). First run only.
+  if (!existing?.lastSyncedAt) {
+    const from = addDays(today, -(FULL_SYNC_DAYS - 1));
+    const history = await fetchDailyContributions(token, user.githubLogin, from, today, 7);
+    await upsertDays(userId, history);
   }
 
+  // Recent days: one call per day so the type split and repo list are exact.
+  const recentFrom = addDays(today, -(INCREMENTAL_SYNC_DAYS - 1));
+  const recent = await fetchDailyContributions(token, user.githubLogin, recentFrom, today, 1);
+  await upsertDays(userId, recent);
+
   return recomputeStreak(userId, user.dailyGoal);
+}
+
+async function upsertDays(userId: string, days: FetchedDay[]) {
+  for (const d of days) {
+    await db
+      .insert(dailyContributions)
+      .values({ userId, ...d })
+      .onConflictDoUpdate({
+        target: [dailyContributions.userId, dailyContributions.date],
+        set: {
+          commits: d.commits,
+          prs: d.prs,
+          reviews: d.reviews,
+          issues: d.issues,
+          total: d.total,
+          repos: d.repos,
+          exact: d.exact,
+        },
+      });
+  }
 }
 
 export async function recomputeStreak(userId: string, goal: number) {

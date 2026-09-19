@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
-import { ArrowRight, Bell, Flame, Zap } from "lucide-react";
 import { auth, signIn } from "@/auth";
-import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/nav";
 import { GitHubIcon } from "@/components/github-icon";
 import { Heatmap } from "@/components/heatmap";
@@ -16,7 +14,6 @@ export default async function Home() {
   const demo = new Map<string, number>();
   for (let i = 0; i < 365; i++) {
     const d = addDays(today, -i);
-    // Cheap hash for a natural-looking pattern: lighter on weekends, occasional bursts.
     let h = (i + 1) * 2654435761;
     h = ((h ^ (h >>> 15)) * 2246822519) >>> 0;
     const v = (h % 1000) / 1000;
@@ -29,88 +26,72 @@ export default async function Home() {
   return (
     <>
       <Nav />
-      <main className="relative flex-1 overflow-hidden">
-        <div className="bg-glow pointer-events-none absolute inset-x-0 top-0 h-[600px]" />
-        <div className="bg-grid pointer-events-none absolute inset-x-0 top-0 h-[600px]" />
-
-        <section className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-4 pb-16 pt-20 text-center sm:pt-28">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
-            Free · Open source · Read-only GitHub access
-          </div>
-
-          <h1 className="mt-2 max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl">
-            Ship every day.
-            <br />
-            <span className="text-gradient">Keep the streak alive.</span>
+      <main className="flex-1">
+        <section className="mx-auto w-full max-w-5xl px-5 pb-12 pt-20 sm:pt-28">
+          <h1 className="max-w-2xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+            A daily contribution goal for your GitHub profile.
           </h1>
-
-          <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-            Duolingo-style streaks and XP for your GitHub profile. Set a daily goal, earn points for
-            commits, PRs and reviews — and get a nudge before the day slips away.
+          <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+            GitStreak tracks your commits, pull requests, reviews and issues against a goal you set,
+            keeps your streak, and sends one reminder on days you&apos;re about to miss it.
           </p>
-
           <form
             action={async () => {
               "use server";
               await signIn("github", { redirectTo: "/dashboard?first=1" });
             }}
-            className="mt-8"
+            className="mt-8 flex flex-wrap items-center gap-4"
           >
-            <Button size="lg" type="submit" className="h-12 gap-2.5 rounded-full px-6 text-base font-semibold ring-glow">
-              <GitHubIcon className="h-5 w-5" />
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center gap-2.5 rounded-md bg-foreground px-4 text-[14px] font-medium text-background hover:opacity-90"
+            >
+              <GitHubIcon className="h-4 w-4" />
               Continue with GitHub
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            </button>
+            <span className="text-[13px] text-muted-foreground">Read-only. No access to your code.</span>
           </form>
-          <p className="mt-3 text-xs text-muted-foreground">No write access. We never touch your repos.</p>
+        </section>
 
-          {/* Preview card */}
-          <div className="card-glass mt-16 w-full max-w-4xl rounded-2xl p-5 text-left sm:p-7">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                  <Flame className="h-7 w-7" strokeWidth={2.25} />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold tabular-nums tracking-tight">
-                    23 <span className="text-base font-medium text-muted-foreground">day streak</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">Goal met today · 2 / 1 contributions</div>
-                </div>
+        <section className="mx-auto w-full max-w-5xl px-5 pb-20">
+          <div className="rounded-lg border border-border bg-card">
+            <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border px-6 py-5">
+              <div>
+                <div className="text-[12px] text-muted-foreground">Current streak</div>
+                <div className="mt-1 font-mono text-4xl font-medium tabular-nums tracking-tight">23<span className="ml-1.5 text-base text-muted-foreground">days</span></div>
               </div>
-              <div className="flex gap-6 text-sm">
+              <dl className="grid grid-cols-3 gap-8 text-[13px]">
                 <Mini label="Longest" value="41" />
                 <Mini label="Level" value="7" />
                 <Mini label="XP" value="5,320" />
-              </div>
+              </dl>
             </div>
-            <div className="mt-6">
+            <div className="px-6 py-5">
               <Heatmap counts={demo} today={today} goal={1} cell={10} />
             </div>
           </div>
-        </section>
 
-        <section className="mx-auto grid w-full max-w-5xl gap-4 px-4 pb-24 sm:grid-cols-3">
-          <Feature
-            icon={<Flame className="h-5 w-5" />}
-            title="Streaks that match GitHub"
-            body="Days follow GitHub's own calendar, so your number always agrees with the graph on your profile."
-          />
-          <Feature
-            icon={<Zap className="h-5 w-5" />}
-            title="XP for real work"
-            body="10 per commit, 30 per PR, 20 per review. Level up as you ship — private repos count too."
-          />
-          <Feature
-            icon={<Bell className="h-5 w-5" />}
-            title="A nudge, not nagging"
-            body="One email at the hour you pick, only on days your streak is actually at risk."
-          />
+          <dl className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-3">
+            <Feature
+              title="Matches GitHub exactly"
+              body="Days follow GitHub's own calendar, so the streak here always agrees with the graph on your profile. Private contributions count."
+            />
+            <Feature
+              title="Points for the work that matters"
+              body="10 XP per commit, 30 per pull request, 20 per review, 5 per issue. Levels scale quadratically so they stay meaningful."
+            />
+            <Feature
+              title="One reminder, not a feed"
+              body="A single email at the hour you choose — and only on days your goal isn't met yet. Nothing else."
+            />
+          </dl>
         </section>
       </main>
-      <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
-        Built with Next.js · Not affiliated with GitHub or Duolingo
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5 text-[12px] text-muted-foreground">
+          <span>GitStreak</span>
+          <span>Not affiliated with GitHub or Duolingo</span>
+        </div>
       </footer>
     </>
   );
@@ -119,20 +100,17 @@ export default async function Home() {
 function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold tabular-nums">{value}</div>
+      <dt className="text-[12px] text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 font-mono text-lg font-medium tabular-nums">{value}</dd>
     </div>
   );
 }
 
-function Feature({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+function Feature({ title, body }: { title: string; body: string }) {
   return (
-    <div className="card-glass rounded-2xl p-5">
-      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-        {icon}
-      </div>
-      <h3 className="font-semibold">{title}</h3>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
+    <div>
+      <dt className="text-[14px] font-medium">{title}</dt>
+      <dd className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{body}</dd>
     </div>
   );
 }

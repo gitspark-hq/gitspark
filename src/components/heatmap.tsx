@@ -1,22 +1,14 @@
 import { addDays } from "@/lib/streak";
 
 type Props = {
-  /** Map of YYYY-MM-DD -> total contributions. */
   counts: Map<string, number>;
   today: string;
   goal: number;
   weeks?: number;
-  /** Cell size in px. */
   cell?: number;
 };
 
-const LEVELS = [
-  "bg-white/[0.06]",
-  "bg-primary/25",
-  "bg-primary/50",
-  "bg-primary/75",
-  "bg-primary shadow-[0_0_6px_-1px_var(--primary)]",
-];
+const LEVELS = ["bg-white/[0.07]", "bg-success/30", "bg-success/55", "bg-success/80", "bg-success"];
 
 function level(count: number, goal: number) {
   if (count === 0) return 0;
@@ -54,13 +46,11 @@ export function Heatmap({ counts, today, goal, weeks = 52, cell = 11 }: Props) {
   const size = { width: cell, height: cell };
 
   return (
-    <div className="overflow-x-auto pb-1">
+    <div className="overflow-x-auto">
       <div className="inline-flex flex-col" style={{ gap }}>
-        <div className="flex text-[10px] font-medium text-muted-foreground" style={{ gap }}>
+        <div className="flex text-[10px] text-muted-foreground" style={{ gap }}>
           {monthLabels.map((m, i) => (
-            <div key={i} className="shrink-0 overflow-visible whitespace-nowrap" style={{ width: cell }}>
-              {m}
-            </div>
+            <div key={i} className="shrink-0 whitespace-nowrap" style={{ width: cell }}>{m}</div>
           ))}
         </div>
         <div className="flex" style={{ gap }}>
@@ -74,9 +64,9 @@ export function Heatmap({ counts, today, goal, weeks = 52, cell = 11 }: Props) {
                     key={date}
                     style={size}
                     title={future ? "" : `${date}: ${c} contribution${c === 1 ? "" : "s"}`}
-                    className={`rounded-[3px] transition-transform hover:scale-125 ${
-                      future ? "bg-transparent" : LEVELS[level(c, goal)]
-                    } ${date === today ? "ring-1 ring-foreground/70 ring-offset-1 ring-offset-background" : ""}`}
+                    className={`rounded-[2px] ${future ? "bg-transparent" : LEVELS[level(c, goal)]} ${
+                      date === today ? "outline outline-1 outline-offset-1 outline-foreground/50" : ""
+                    }`}
                   />
                 );
               })}
@@ -86,7 +76,7 @@ export function Heatmap({ counts, today, goal, weeks = 52, cell = 11 }: Props) {
         <div className="mt-1 flex items-center gap-1 self-end text-[10px] text-muted-foreground">
           Less
           {LEVELS.map((cls, i) => (
-            <div key={i} style={size} className={`rounded-[3px] ${cls}`} />
+            <div key={i} style={size} className={`rounded-[2px] ${cls}`} />
           ))}
           More
         </div>
