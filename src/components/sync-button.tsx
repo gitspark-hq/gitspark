@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function SyncButton({ label = "Sync now" }: { label?: string }) {
+export function SyncButton({ label = "Sync" }: { label?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -15,6 +16,7 @@ export function SyncButton({ label = "Sync now" }: { label?: string }) {
         variant="outline"
         size="sm"
         disabled={pending}
+        className="gap-2 border-border/70 bg-white/[0.03] hover:bg-white/[0.06]"
         onClick={() =>
           start(async () => {
             setError(null);
@@ -28,7 +30,8 @@ export function SyncButton({ label = "Sync now" }: { label?: string }) {
           })
         }
       >
-        {pending ? "Syncing…" : label}
+        <RefreshCw className={`h-3.5 w-3.5 ${pending ? "animate-spin" : ""}`} />
+        {pending ? "Syncing" : label}
       </Button>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>

@@ -7,13 +7,16 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "GitStreak",
-  description: "Build your GitHub profile one day at a time. Streaks, XP, and reminders for commits, PRs, and reviews.",
+  description:
+    "Build your GitHub profile one day at a time. Streaks, XP, and reminders for commits, PRs, and reviews.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">{children}</body>
+    <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/30">
+        {children}
+      </body>
     </html>
   );
 }

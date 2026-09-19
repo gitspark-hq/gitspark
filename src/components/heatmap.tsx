@@ -6,14 +6,16 @@ type Props = {
   today: string;
   goal: number;
   weeks?: number;
+  /** Cell size in px. */
+  cell?: number;
 };
 
 const LEVELS = [
-  "bg-muted",
-  "bg-green-200 dark:bg-green-900",
-  "bg-green-400 dark:bg-green-700",
-  "bg-green-600 dark:bg-green-500",
-  "bg-green-800 dark:bg-green-300",
+  "bg-white/[0.06]",
+  "bg-primary/25",
+  "bg-primary/50",
+  "bg-primary/75",
+  "bg-primary shadow-[0_0_6px_-1px_var(--primary)]",
 ];
 
 function level(count: number, goal: number) {
@@ -24,10 +26,9 @@ function level(count: number, goal: number) {
   return 4;
 }
 
-/** GitHub-style 52-week contribution grid. Columns are weeks (Sun–Sat), oldest on the left. */
-export function Heatmap({ counts, today, goal, weeks = 52 }: Props) {
-  const todayDow = new Date(today + "T00:00:00Z").getUTCDay(); // 0 = Sun
-  // Start on the Sunday `weeks-1` weeks before this week's Sunday.
+/** GitHub-style contribution grid. Columns are weeks (Sun–Sat), oldest on the left. */
+export function Heatmap({ counts, today, goal, weeks = 52, cell = 11 }: Props) {
+  const todayDow = new Date(today + "T00:00:00Z").getUTCDay();
   const start = addDays(today, -(todayDow + (weeks - 1) * 7));
 
   const columns: string[][] = [];
@@ -49,27 +50,33 @@ export function Heatmap({ counts, today, goal, weeks = 52 }: Props) {
       : "";
   });
 
+  const gap = 3;
+  const size = { width: cell, height: cell };
+
   return (
-    <div className="overflow-x-auto">
-      <div className="inline-flex flex-col gap-1">
-        <div className="flex gap-[3px] text-[10px] text-muted-foreground">
+    <div className="overflow-x-auto pb-1">
+      <div className="inline-flex flex-col" style={{ gap }}>
+        <div className="flex text-[10px] font-medium text-muted-foreground" style={{ gap }}>
           {monthLabels.map((m, i) => (
-            <div key={i} className="w-[11px] shrink-0">{m}</div>
+            <div key={i} className="shrink-0 overflow-visible whitespace-nowrap" style={{ width: cell }}>
+              {m}
+            </div>
           ))}
         </div>
-        <div className="flex gap-[3px]">
+        <div className="flex" style={{ gap }}>
           {columns.map((col, i) => (
-            <div key={i} className="flex flex-col gap-[3px]">
+            <div key={i} className="flex flex-col" style={{ gap }}>
               {col.map((date) => {
                 const future = date > today;
                 const c = counts.get(date) ?? 0;
                 return (
                   <div
                     key={date}
+                    style={size}
                     title={future ? "" : `${date}: ${c} contribution${c === 1 ? "" : "s"}`}
-                    className={`h-[11px] w-[11px] rounded-[2px] ${
+                    className={`rounded-[3px] transition-transform hover:scale-125 ${
                       future ? "bg-transparent" : LEVELS[level(c, goal)]
-                    } ${date === today ? "ring-1 ring-foreground/60" : ""}`}
+                    } ${date === today ? "ring-1 ring-foreground/70 ring-offset-1 ring-offset-background" : ""}`}
                   />
                 );
               })}
@@ -79,7 +86,7 @@ export function Heatmap({ counts, today, goal, weeks = 52 }: Props) {
         <div className="mt-1 flex items-center gap-1 self-end text-[10px] text-muted-foreground">
           Less
           {LEVELS.map((cls, i) => (
-            <div key={i} className={`h-[11px] w-[11px] rounded-[2px] ${cls}`} />
+            <div key={i} style={size} className={`rounded-[3px] ${cls}`} />
           ))}
           More
         </div>
