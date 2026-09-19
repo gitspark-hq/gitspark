@@ -27,7 +27,7 @@ export const users = pgTable("users", {
   reminderHour: integer("reminder_hour").notNull().default(20),
   remindersEnabled: boolean("reminders_enabled").notNull().default(true),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const accounts = pgTable(
   "accounts",
@@ -49,7 +49,7 @@ export const accounts = pgTable(
   (account) => [
     primaryKey({ columns: [account.provider, account.providerAccountId] }),
   ],
-);
+).enableRLS();
 
 export const sessions = pgTable("sessions", {
   sessionToken: text("session_token").primaryKey(),
@@ -57,7 +57,7 @@ export const sessions = pgTable("sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
-});
+}).enableRLS();
 
 export const verificationTokens = pgTable(
   "verification_tokens",
@@ -67,7 +67,7 @@ export const verificationTokens = pgTable(
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
-);
+).enableRLS();
 
 // ---- GitStreak tables ----
 
@@ -89,7 +89,7 @@ export const dailyContributions = pgTable(
     primaryKey({ columns: [t.userId, t.date] }),
     uniqueIndex("daily_contributions_user_date_idx").on(t.userId, t.date),
   ],
-);
+).enableRLS();
 
 export const streaks = pgTable("streaks", {
   userId: text("user_id")
@@ -100,7 +100,7 @@ export const streaks = pgTable("streaks", {
   lastActiveDate: date("last_active_date", { mode: "string" }),
   xp: integer("xp").notNull().default(0),
   lastSyncedAt: timestamp("last_synced_at", { mode: "date" }),
-});
+}).enableRLS();
 
 /** Prevents sending more than one reminder per user per day. */
 export const reminderLog = pgTable(
@@ -113,7 +113,7 @@ export const reminderLog = pgTable(
     sentAt: timestamp("sent_at", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
-);
+).enableRLS();
 
 export type User = typeof users.$inferSelect;
 export type DailyContribution = typeof dailyContributions.$inferSelect;

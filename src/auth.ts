@@ -5,13 +5,21 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, accounts, sessions, verificationTokens } from "@/db/schema";
 
+// Our tables call .enableRLS(), which the adapter's types don't account for
+// (they strip that method from the type); the runtime shape is identical, so cast.
+// DrizzleAdapter is overloaded per dialect; pick the Postgres schema type by matching on our db.
+type AdapterSchema = typeof DrizzleAdapter extends (client: typeof db, schema?: infer S) => unknown
+  ? NonNullable<S>
+  : never;
+const authTables = {
+  usersTable: users,
+  accountsTable: accounts,
+  sessionsTable: sessions,
+  verificationTokensTable: verificationTokens,
+} as unknown as AdapterSchema;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-  }),
+  adapter: DrizzleAdapter(db, authTables),
   providers: [
     GitHub({
       // read:user is enough for the contributions calendar (incl. the user's own

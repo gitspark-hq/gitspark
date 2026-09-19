@@ -59,6 +59,11 @@ Resend (email) · GitHub Actions (hourly cron).
 **Timezones:** streak days follow GitHub's calendar (UTC) so the app always agrees with the graph
 on your profile. Your timezone is only used to decide *when* to send the reminder.
 
+**Row Level Security:** every table has RLS enabled (`.enableRLS()` in `src/db/schema.ts`) with
+no policies, so Supabase's public Data API / `anon` key can't read anything. The app connects as
+the table owner (`postgres`) which bypasses RLS. Don't add Supabase client-side queries without
+writing policies first.
+
 **Private contributions:** the GraphQL call uses your own OAuth token, so your private activity is
 counted (as a total) without needing the `repo` scope.
 
