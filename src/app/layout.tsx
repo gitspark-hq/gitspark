@@ -6,7 +6,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GitStreak",
+  title: "GitSpark",
   description:
     "Build your GitHub profile one day at a time. Streaks, XP, and reminders for commits, PRs, and reviews.",
 };

@@ -1,4 +1,4 @@
-# 🔥 GitStreak
+# GitSpark
 
 Duolingo for your GitHub profile. Sign in with GitHub, set a daily goal, keep your contribution
 streak alive, earn XP for commits / PRs / reviews / issues, and get an email before the day ends

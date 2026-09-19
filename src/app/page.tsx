@@ -32,7 +32,7 @@ export default async function Home() {
             A daily contribution goal for your GitHub profile.
           </h1>
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
-            GitStreak tracks your commits, pull requests, reviews and issues against a goal you set,
+            GitSpark tracks your commits, pull requests, reviews and issues against a goal you set,
             keeps your streak, and sends one reminder on days you&apos;re about to miss it.
           </p>
           <form
@@ -89,7 +89,7 @@ export default async function Home() {
       </main>
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5 text-[12px] text-muted-foreground">
-          <span>GitStreak</span>
+          <span>GitSpark</span>
           <span>Not affiliated with GitHub or Duolingo</span>
         </div>
       </footer>

@@ -76,7 +76,7 @@ async function fetchWindow(token: string, login: string, from: Date, to: Date): 
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      "User-Agent": "gitstreak",
+      "User-Agent": "gitspark",
     },
     body: JSON.stringify({ query: QUERY, variables: { login, from: from.toISOString(), to: to.toISOString() } }),
   });

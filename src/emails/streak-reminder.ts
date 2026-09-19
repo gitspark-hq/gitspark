@@ -30,7 +30,7 @@ export function streakReminderHtml(p: Props) {
       and need <strong>${remaining} more contribution${remaining === 1 ? "" : "s"}</strong>
       (a commit, PR, review, or issue) to keep it alive.
     </p>
-    <a href="${p.appUrl}/dashboard" style="display:inline-block;background:#1f883d;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px">Open GitStreak</a>
+    <a href="${p.appUrl}/dashboard" style="display:inline-block;background:#1f883d;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px">Open GitSpark</a>
     <p style="font-size:12px;color:#656d76;margin:32px 0 0">
       You're getting this because reminders are on. Turn them off in <a href="${p.appUrl}/settings" style="color:#656d76">Settings</a>.
     </p>

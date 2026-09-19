@@ -21,7 +21,7 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
-  // GitStreak-specific columns
+  // GitSpark-specific columns
   githubLogin: text("github_login"),
   timezone: text("timezone").notNull().default("UTC"),
   dailyGoal: integer("daily_goal").notNull().default(1),
@@ -70,7 +70,7 @@ export const verificationTokens = pgTable(
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 ).enableRLS();
 
-// ---- GitStreak tables ----
+// ---- GitSpark tables ----
 
 /** One row per user per (UTC, GitHub-calendar) day. Cached snapshot of GitHub data. */
 export const dailyContributions = pgTable(

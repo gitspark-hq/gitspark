@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   if (denied) return denied;
 
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "GitStreak <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM ?? "GitSpark <onboarding@resend.dev>";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   if (!apiKey) return NextResponse.json({ error: "RESEND_API_KEY not configured" }, { status: 500 });
   const resend = new Resend(apiKey);
