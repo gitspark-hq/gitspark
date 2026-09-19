@@ -1,7 +1,7 @@
 # Hourly sync + reminder trigger. Vercel's Hobby plan only allows daily crons,
 # so GitHub Actions calls the app's cron endpoints instead.
 #
-# Repo secrets required: APP_URL (e.g. https://gitspark.vercel.app), CRON_SECRET
+# Repo secrets required: APP_URL (e.g. https://gitspark-app.vercel.app), CRON_SECRET
 name: Hourly cron
 
 on:
