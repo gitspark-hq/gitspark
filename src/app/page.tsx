@@ -51,6 +51,11 @@ export default async function Home() {
             </button>
             <span className="text-[13px] text-muted-foreground">Read-only. No access to your code.</span>
           </form>
+          <p className="mt-4 text-[13px] text-muted-foreground">
+            New to GitHub? Create your account at{" "}
+            <a href="https://github.com/signup" target="_blank" rel="noreferrer" className="underline hover:text-foreground">github.com/signup</a>{" "}
+            first, then come back. Signing up through Google from the button above sometimes fails on GitHub&apos;s side.
+          </p>
         </section>
 
         <section className="mx-auto w-full max-w-5xl px-5 pb-20">
