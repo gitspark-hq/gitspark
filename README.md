@@ -64,6 +64,11 @@ no policies, so Supabase's public Data API / `anon` key can't read anything. The
 the table owner (`postgres`) which bypasses RLS. Don't add Supabase client-side queries without
 writing policies first.
 
+**Pooler caveat:** `DATABASE_URL` goes through Supabase's *transaction-mode* pooler, which reuses
+server connections between clients. Never run session-level statements (`SET ROLE`, `SET search_path`,
+`LISTEN`, advisory locks) on it — they leak into other clients' queries. Use `DIRECT_URL` (session
+pooler) for anything like that.
+
 **Private contributions:** the GraphQL call uses your own OAuth token, so your private activity is
 counted (as a total) without needing the `repo` scope.
 
