@@ -34,7 +34,7 @@ export async function Nav() {
               </button>
             </form>
           </nav>
-        ) : null        )}
+        ) : null}
       </div>
     </header>
   );
