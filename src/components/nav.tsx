@@ -34,16 +34,7 @@ export async function Nav() {
               </button>
             </form>
           </nav>
-        ) : (
-          <a
-            href="https://github.com/ronakrupani/gitspark"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[13px] text-muted-foreground hover:text-foreground"
-          >
-            Source
-          </a>
-        )}
+        ) : null        )}
       </div>
     </header>
   );
