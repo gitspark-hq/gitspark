@@ -27,9 +27,9 @@ export type ProfileSummary = {
     score: number;
     repoCount: number;
     /** Most common failing checks across the account. */
-    patterns: { check: string; failing: number; of: number }[];
+    patterns: { check: string; failing: number; of: number; fix: string }[];
     /** Worst three repos with what they fail. */
-    worst: { name: string; score: number; fails: string[] }[];
+    worst: { name: string; score: number; fails: string[]; fixes: string[] }[];
     /** Best two repos. */
     best: { name: string; score: number }[];
     gradedAt: string;
@@ -98,11 +98,12 @@ export async function buildProfileSummary(userId: string): Promise<ProfileSummar
           letter: grade.accountGrade,
           score: grade.accountScore,
           repoCount: grade.scores.length,
-          patterns: grade.findings.patterns.map((p) => ({ check: p.check.title, failing: p.count, of: p.applicable })),
+          patterns: grade.findings.patterns.map((p) => ({ check: p.check.title, failing: p.count, of: p.applicable, fix: p.check.howToFix })),
           worst: ranked.slice(0, 3).map((r) => ({
             name: r.repo.name,
             score: r.score,
             fails: partitionOutcomes(r.outcomes).failed.map((o) => o.check.title),
+            fixes: partitionOutcomes(r.outcomes).failed.map((o) => o.check.howToFix),
           })),
           best: [...ranked].reverse().slice(0, 2).map((r) => ({ name: r.repo.name, score: r.score })),
           gradedAt: grade.gradedAt.toISOString(),

@@ -25,3 +25,21 @@ describe("SYSTEM_PROMPT", () => {
     expect(SYSTEM_PROMPT).toMatch(/no bullet points/i);
   });
 });
+
+import { cleanFixes } from "../src/lib/analysis-prompt";
+
+describe("cleanFixes", () => {
+  it("turns a messy model list into clean lines", () => {
+    const raw = "Here is your list:\n1. **gitgrade**: add a license — MIT is fine.\n- nura-app: write a README\n\n3) Habit: open one PR this week\n";
+    expect(cleanFixes(raw)).toEqual([
+      "gitgrade: add a license, MIT is fine.",
+      "nura-app: write a README",
+      "Habit: open one PR this week",
+    ]);
+  });
+
+  it("caps at seven", () => {
+    const raw = Array.from({ length: 10 }, (_, i) => `r${i}: fix`).join("\n");
+    expect(cleanFixes(raw)).toHaveLength(7);
+  });
+});

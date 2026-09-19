@@ -17,7 +17,7 @@ export default async function AnalysisPage() {
   return (
     <>
       <Nav />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">
         <div className="mb-6">
           <h1 className="text-xl font-semibold tracking-tight">Profile analysis</h1>
           <p className="mt-0.5 text-[13px] text-muted-foreground">

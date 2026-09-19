@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Loader2, RefreshCw } from "lucide-react";
 import type { ProfileSummary } from "@/lib/profile-summary";
-import { buildUserPrompt, cleanOutput, SYSTEM_PROMPT } from "@/lib/analysis-prompt";
+import { buildFixesPrompt, buildUserPrompt, cleanFixes, cleanOutput, FIXES_SYSTEM_PROMPT, SYSTEM_PROMPT } from "@/lib/analysis-prompt";
 
 type Status =
   | { kind: "checking" }
@@ -12,10 +12,10 @@ type Status =
   | { kind: "downloadable" }
   | { kind: "downloading"; pct: number }
   | { kind: "ready" }
-  | { kind: "generating" }
+  | { kind: "generating"; phase: "read" | "fixes" }
   | { kind: "error"; message: string };
 
-type Saved = { text: string; at: string; dataAt: string };
+type Saved = { text: string; fixes: string[]; at: string; dataAt: string };
 
 function storageKey(login: string) {
   return `gitspark:analysis:${login}`;
@@ -53,6 +53,7 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
     }
   });
   const [text, setText] = useState(() => saved?.text ?? "");
+  const [fixes, setFixes] = useState<string[]>(() => saved?.fixes ?? []);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -72,12 +73,13 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
     const ac = new AbortController();
     abortRef.current = ac;
 
-    setStatus({ kind: "generating" });
+    setStatus({ kind: "generating", phase: "read" });
     setText("");
-    let session: LanguageModelSession | null = null;
-    try {
-      session = await lm.create({
-        initialPrompts: [{ role: "system", content: SYSTEM_PROMPT }],
+    setFixes([]);
+    const sessions: LanguageModelSession[] = [];
+    const open = async (system: string) => {
+      const session = await lm.create({
+        initialPrompts: [{ role: "system", content: system }],
         expectedOutputs: [{ type: "text", languages: ["en"] }],
         temperature: 0.6,
         topK: 3,
@@ -89,19 +91,37 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
           });
         },
       });
-
+      sessions.push(session);
+      return session;
+    };
+    const stream = async (session: LanguageModelSession, prompt: string, onChunk: (acc: string) => void) => {
       let acc = "";
-      const stream = session.promptStreaming(buildUserPrompt(summary), { signal: ac.signal });
-      const reader = stream.getReader();
+      const reader = session.promptStreaming(prompt, { signal: ac.signal }).getReader();
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
         acc += value;
-        setText(cleanOutput(acc));
+        onChunk(acc);
       }
-      const final = cleanOutput(acc);
-      setText(final);
-      const s: Saved = { text: final, at: new Date().toISOString(), dataAt: summary.generatedAt };
+      return acc;
+    };
+
+    try {
+      // Pass 1: the read.
+      const readSession = await open(SYSTEM_PROMPT);
+      setStatus({ kind: "generating", phase: "read" });
+      const rawRead = await stream(readSession, buildUserPrompt(summary), (acc) => setText(cleanOutput(acc)));
+      const finalText = cleanOutput(rawRead);
+      setText(finalText);
+
+      // Pass 2: the fix list, in its own session so the list format doesn't fight the prose rules.
+      setStatus({ kind: "generating", phase: "fixes" });
+      const fixSession = await open(FIXES_SYSTEM_PROMPT);
+      const rawFixes = await stream(fixSession, buildFixesPrompt(summary), (acc) => setFixes(cleanFixes(acc)));
+      const finalFixes = cleanFixes(rawFixes);
+      setFixes(finalFixes);
+
+      const s: Saved = { text: finalText, fixes: finalFixes, at: new Date().toISOString(), dataAt: summary.generatedAt };
       setSaved(s);
       try {
         localStorage.setItem(storageKey(summary.login), JSON.stringify(s));
@@ -111,7 +131,7 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
       if ((err as Error).name === "AbortError") return;
       setStatus({ kind: "error", message: (err as Error).message || "The model returned an error." });
     } finally {
-      session?.destroy();
+      for (const sess of sessions) sess.destroy();
     }
   }, [summary]);
 
@@ -152,30 +172,48 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
       </div>
 
       {/* Output */}
-      {text ? (
-        <article className="rounded-lg border border-border bg-card px-6 py-5">
-          {text.split(/\n{2,}/).map((para, i) => (
-            <p key={i} className="mb-4 text-[14px] leading-relaxed last:mb-0">
-              {para}
-              {i === text.split(/\n{2,}/).length - 1 && status.kind === "generating" ? (
-                <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-[3px] animate-pulse bg-foreground/70" />
-              ) : null}
-            </p>
-          ))}
+      {status.kind === "unsupported" || status.kind === "unavailable" ? (
+        <Setup unsupported={status.kind === "unsupported"} />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          <Pane title="The read" active={status.kind === "generating" && status.phase === "read"} empty={!text}>
+            {text.split(/\n{2,}/).map((para, i, arr) => (
+              <p key={i} className="mb-4 text-[14px] leading-relaxed last:mb-0">
+                {para}
+                {i === arr.length - 1 && status.kind === "generating" && status.phase === "read" ? <Cursor /> : null}
+              </p>
+            ))}
+          </Pane>
+
+          <Pane title="What to fix" active={status.kind === "generating" && status.phase === "fixes"} empty={fixes.length === 0}>
+            <ol className="space-y-3">
+              {fixes.map((line, i) => {
+                const idx = line.indexOf(":");
+                const head = idx > 0 && idx < 40 ? line.slice(0, idx) : null;
+                const body = head ? line.slice(idx + 1).trim() : line;
+                return (
+                  <li key={i} className="flex gap-3 text-[14px] leading-relaxed">
+                    <span className="mt-[3px] w-5 shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{i + 1}</span>
+                    <span>
+                      {head ? <span className="font-medium">{head}</span> : null}
+                      {head ? <span className="text-muted-foreground">: </span> : null}
+                      {body}
+                      {i === fixes.length - 1 && status.kind === "generating" && status.phase === "fixes" ? <Cursor /> : null}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </Pane>
+
           {saved && status.kind !== "generating" ? (
-            <p className="mt-5 border-t border-border pt-3 text-[12px] text-muted-foreground">
+            <p className="text-[12px] text-muted-foreground lg:col-span-2">
               Written {relative(new Date(saved.at))}.
               {new Date(summary.generatedAt) > new Date(saved.dataAt)
                 ? " Your profile data has changed since then. Regenerate for a fresh take."
                 : ""}
             </p>
           ) : null}
-        </article>
-      ) : status.kind === "unsupported" || status.kind === "unavailable" ? (
-        <Setup unsupported={status.kind === "unsupported"} />
-      ) : (
-        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-[13px] text-muted-foreground">
-          {status.kind === "generating" ? "Thinking." : "Nothing written yet. Hit Analyze."}
         </div>
       )}
 
@@ -184,6 +222,28 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
       </p>
     </div>
   );
+}
+
+function Pane({ title, active, empty, children }: { title: string; active: boolean; empty: boolean; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-5 py-3.5">
+        <h2 className="text-[14px] font-medium">{title}</h2>
+        {active ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
+      </header>
+      <div className="px-5 py-5">
+        {empty ? (
+          <p className="text-[13px] text-muted-foreground">{active ? "Thinking." : "Nothing here yet."}</p>
+        ) : (
+          children
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Cursor() {
+  return <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-[3px] animate-pulse bg-foreground/70" />;
 }
 
 function StatusLine({ status }: { status: Status }) {
@@ -201,7 +261,7 @@ function StatusLine({ status }: { status: Status }) {
     case "ready":
       return <>Ready to write.</>;
     case "generating":
-      return <>Writing your review.</>;
+      return <>{status.phase === "read" ? "Writing the read." : "Working out the fixes."}</>;
     case "error":
       return <span className="text-destructive">{status.message}</span>;
   }

@@ -21,6 +21,66 @@ function plural(n: number, one: string, many = one + "s") {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+/**
+ * Second pass, separate session: a plain fix list. A list is the natural shape
+ * for a to-do, so lists are allowed here, but the same tone rules apply.
+ */
+export const FIXES_SYSTEM_PROMPT = `You turn a GitHub profile report into a short to-do list for the developer who owns it.
+
+Rules you must follow:
+- Output between 3 and 7 lines. One fix per line. Nothing before or after the list.
+- Each line: the repo name (or "All repos" or "Habit") followed by a colon, then one plain sentence saying exactly what to do. Example: "gitgrade: add an MIT license file."
+- Most valuable fix first. Use the point values you were given to decide.
+- Never use an em dash or en dash. No bold, no headings, no numbering, no bullet symbols.
+- Do not invent repos, files, or numbers. Only use what you were given.
+- Keep each line under 25 words.`;
+
+export function buildFixesPrompt(p: ProfileSummary): string {
+  const a = p.activity;
+  const lines: string[] = [`GitHub user: ${p.login}`, ``];
+
+  if (p.grade) {
+    const g = p.grade;
+    lines.push(`Repo problems, with points lost and the exact fix:`);
+    for (const w of g.worst) {
+      if (!w.fails.length) continue;
+      lines.push(`- ${w.name} (${w.score}/100):`);
+      w.fails.slice(0, 4).forEach((f, i) => lines.push(`    ${f}. Fix: ${w.fixes[i]}`));
+    }
+    if (g.patterns.length) {
+      lines.push(``, `Problems repeated across the account:`);
+      for (const x of g.patterns) lines.push(`- ${x.check}: ${x.failing} of ${x.of} repos${x.fix ? `. Fix: ${x.fix}` : ""}`);
+    }
+  } else {
+    lines.push(`Repo quality has not been graded.`);
+  }
+
+  lines.push(``, `Habit:`);
+  lines.push(`- Current streak ${a.currentStreak}, longest ${a.longestStreak}, active ${a.activeDaysLast90} of the last 90 days, goal ${a.dailyGoal} per day.`);
+  lines.push(`- Last year: ${a.commits365} commits, ${a.prs365} pull requests, ${a.reviews365} reviews.`);
+  if (a.prs365 === 0) lines.push(`- No pull requests at all. Everything is pushed straight to main.`);
+  if (a.reviews365 === 0) lines.push(`- No code reviews given.`);
+
+  lines.push(``, `Write the list now.`);
+  return lines.join("\n");
+}
+
+/** Fix list to clean lines: strip numbering/bullets/bold/dashes, drop empties, cap at 7. */
+export function cleanFixes(text: string): string[] {
+  return text
+    .split("\n")
+    .map((l) =>
+      l
+        .replace(/\s*[—–]\s*/g, ", ")
+        .replace(/^\s*(?:\d+[.)]|[-*•])\s*/, "")
+        .replace(/\*\*(.+?)\*\*/g, "$1")
+        .replace(/^#+\s*/, "")
+        .trim(),
+    )
+    .filter((l) => l.length > 0 && !/^(here|sure|okay)\b/i.test(l))
+    .slice(0, 7);
+}
+
 export function buildUserPrompt(p: ProfileSummary): string {
   const a = p.activity;
   const lines: string[] = [
