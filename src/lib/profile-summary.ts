@@ -4,11 +4,18 @@ import { dailyContributions, streaks, users } from "@/db/schema";
 import { addDays, computeStreak } from "@/lib/streak";
 import { nowIn } from "@/lib/time";
 import { getGrade, partitionOutcomes, rankWorstFirst } from "@/lib/grade";
+import { createHash } from "node:crypto";
 
 /** Everything the on-device model is shown. Kept small: Nano has a short context window. */
 export type ProfileSummary = {
   login: string;
+  /** When the underlying data last changed (latest of last sync and last grade). */
   generatedAt: string;
+  /**
+   * Hash of everything the model is shown, minus timestamps. Two summaries with
+   * the same fingerprint would produce the same review, so nothing is regenerated.
+   */
+  fingerprint: string;
   activity: {
     currentStreak: number;
     longestStreak: number;
@@ -78,7 +85,7 @@ export async function buildProfileSummary(userId: string): Promise<ProfileSummar
   const [streakRow] = await db.select({ at: streaks.lastSyncedAt }).from(streaks).where(eq(streaks.userId, userId)).limit(1);
   const dataAt = new Date(Math.max(streakRow?.at?.getTime() ?? 0, grade?.gradedAt.getTime() ?? 0) || Date.now());
 
-  return {
+  const summary: Omit<ProfileSummary, "fingerprint"> = {
     login: user.githubLogin,
     generatedAt: dataAt.toISOString(),
     activity: {
@@ -110,4 +117,13 @@ export async function buildProfileSummary(userId: string): Promise<ProfileSummar
         }
       : null,
   };
+
+  const { generatedAt: _at, ...content } = summary;
+  void _at;
+  const fingerprint = createHash("sha256")
+    .update(JSON.stringify({ ...content, grade: content.grade ? { ...content.grade, gradedAt: undefined } : null }))
+    .digest("hex")
+    .slice(0, 32);
+
+  return { ...summary, fingerprint };
 }

@@ -131,6 +131,20 @@ export const repoGrades = pgTable("repo_grades", {
   gradedAt: timestamp("graded_at", { mode: "date" }).notNull().defaultNow(),
 }).enableRLS();
 
+/** The on-device analysis, saved so it is identical on every device until the profile changes. */
+export const profileAnalyses = pgTable("profile_analyses", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  text: text("text").notNull(),
+  fixes: jsonb("fixes").$type<string[]>().notNull(),
+  /** Snapshot time of the data it was written from (latest sync/grade at the time). */
+  dataAt: timestamp("data_at", { mode: "date" }).notNull(),
+  /** ProfileSummary.fingerprint at write time; a different one means the profile changed. */
+  fingerprint: text("fingerprint").notNull().default(""),
+  writtenAt: timestamp("written_at", { mode: "date" }).notNull().defaultNow(),
+}).enableRLS();
+
 /** One graded repo as persisted. Check metadata is rehydrated from the registry by id. */
 export type StoredRepoScore = {
   repo: {

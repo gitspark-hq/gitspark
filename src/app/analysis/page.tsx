@@ -4,6 +4,9 @@ import { auth } from "@/auth";
 import { Nav } from "@/components/nav";
 import { ProfileAnalysis } from "@/components/profile-analysis";
 import { buildProfileSummary } from "@/lib/profile-summary";
+import { db } from "@/db";
+import { profileAnalyses } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +16,11 @@ export default async function AnalysisPage() {
 
   const summary = await buildProfileSummary(session.user.id);
   if (!summary) redirect("/dashboard");
+
+  const [row] = await db.select().from(profileAnalyses).where(eq(profileAnalyses.userId, session.user.id)).limit(1);
+  const saved = row
+    ? { text: row.text, fixes: row.fixes, at: row.writtenAt.toISOString(), dataAt: row.dataAt.toISOString(), fingerprint: row.fingerprint }
+    : null;
 
   return (
     <>
@@ -30,7 +38,7 @@ export default async function AnalysisPage() {
             )}
           </p>
         </div>
-        <ProfileAnalysis summary={summary} />
+        <ProfileAnalysis summary={summary} initialSaved={saved} />
       </main>
     </>
   );

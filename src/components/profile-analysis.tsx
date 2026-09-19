@@ -15,11 +15,7 @@ type Status =
   | { kind: "generating"; phase: "read" | "fixes" }
   | { kind: "error"; message: string };
 
-type Saved = { text: string; fixes: string[]; at: string; dataAt: string };
-
-function storageKey(login: string) {
-  return `gitspark:analysis:${login}`;
-}
+type Saved = { text: string; fixes: string[]; at: string; dataAt: string; fingerprint: string };
 
 function api(): LanguageModelStatic | undefined {
   if (typeof window === "undefined") return undefined;
@@ -40,21 +36,20 @@ async function checkAvailability(): Promise<Status> {
   }
 }
 
-export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
+/**
+ * The saved analysis is the source of truth and comes from the server. It is
+ * only replaced when the user clicks Regenerate, or automatically when the
+ * profile data has changed since it was written and the model is ready.
+ */
+export function ProfileAnalysis({ summary, initialSaved }: { summary: ProfileSummary; initialSaved: Saved | null }) {
   const [status, setStatus] = useState<Status>({ kind: "checking" });
-  // Restore the last result for this viewer. Lazy initialiser so it never runs on the server.
-  const [saved, setSaved] = useState<Saved | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = localStorage.getItem(storageKey(summary.login));
-      return raw ? (JSON.parse(raw) as Saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [saved, setSaved] = useState<Saved | null>(initialSaved);
   const [text, setText] = useState(() => saved?.text ?? "");
   const [fixes, setFixes] = useState<string[]>(() => saved?.fixes ?? []);
   const abortRef = useRef<AbortController | null>(null);
+  const autoRan = useRef(false);
+  // "Changed" means the numbers the model sees differ, not merely that a sync ran.
+  const stale = saved ? saved.fingerprint !== summary.fingerprint : false;
 
   useEffect(() => {
     let cancelled = false;
@@ -121,11 +116,13 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
       const finalFixes = cleanFixes(rawFixes);
       setFixes(finalFixes);
 
-      const s: Saved = { text: finalText, fixes: finalFixes, at: new Date().toISOString(), dataAt: summary.generatedAt };
+      const s: Saved = { text: finalText, fixes: finalFixes, at: new Date().toISOString(), dataAt: summary.generatedAt, fingerprint: summary.fingerprint };
       setSaved(s);
-      try {
-        localStorage.setItem(storageKey(summary.login), JSON.stringify(s));
-      } catch {}
+      await fetch("/api/analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: s.text, fixes: s.fixes, dataAt: s.dataAt, fingerprint: s.fingerprint }),
+      }).catch(() => undefined);
       setStatus({ kind: "ready" });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
@@ -134,6 +131,13 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
       for (const sess of sessions) sess.destroy();
     }
   }, [summary]);
+
+  useEffect(() => {
+    if (status.kind === "ready" && saved && stale && !autoRan.current) {
+      autoRan.current = true;
+      void generate();
+    }
+  }, [status.kind, saved, stale, generate]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -208,10 +212,8 @@ export function ProfileAnalysis({ summary }: { summary: ProfileSummary }) {
 
           {saved && status.kind !== "generating" ? (
             <p className="text-[12px] text-muted-foreground lg:col-span-2">
-              Written {relative(new Date(saved.at))}.
-              {new Date(summary.generatedAt) > new Date(saved.dataAt)
-                ? " Your profile data has changed since then. Regenerate for a fresh take."
-                : ""}
+              Written {relative(new Date(saved.at))}. Stays the same until your profile changes or you regenerate.
+              {stale ? " Your profile has changed since then." : ""}
             </p>
           ) : null}
         </div>
@@ -259,7 +261,7 @@ function StatusLine({ status }: { status: Status }) {
     case "downloading":
       return <>Downloading the model. This only happens the first time.</>;
     case "ready":
-      return <>Ready to write.</>;
+      return <>Ready. Saved to your account, same on every device.</>;
     case "generating":
       return <>{status.phase === "read" ? "Writing the read." : "Working out the fixes."}</>;
     case "error":
