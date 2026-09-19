@@ -5,6 +5,7 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    // Migrations go through the session pooler (5432); the app uses the transaction pooler (6543).
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL!,
   },
 });
