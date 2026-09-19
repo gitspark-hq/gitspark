@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔥 GitStreak
 
-## Getting Started
+Duolingo for your GitHub profile. Sign in with GitHub, set a daily goal, keep your contribution
+streak alive, earn XP for commits / PRs / reviews / issues, and get an email before the day ends
+if your streak is at risk.
 
-First, run the development server:
+**Stack:** Next.js 16 (App Router) · Auth.js (GitHub OAuth) · Drizzle + Postgres (Supabase) ·
+Resend (email) · Vercel Cron.
+
+## Setup
+
+1. **Clone & install**
+   ```bash
+   npm install
+   cp .env.example .env
+   ```
+
+2. **GitHub OAuth App** — <https://github.com/settings/developers> → *New OAuth App*
+   - Homepage URL: `http://localhost:3000`
+   - Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
+   - Put the Client ID / Secret in `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET`.
+
+3. **Auth secret**
+   ```bash
+   npx auth secret
+   ```
+
+4. **Database** — create a free Supabase project, copy the *Transaction pooler* connection string
+   (port 6543) into `DATABASE_URL`, then push the schema:
+   ```bash
+   npm run db:push
+   ```
+
+5. **Email (optional for local dev)** — get a Resend API key. `onboarding@resend.dev` can send to
+   your own address without a verified domain.
+
+6. **Cron secret** — any random string in `CRON_SECRET`.
+
+7. **Run**
+   ```bash
+   npm run dev
+   ```
+
+## How it works
+
+| Piece | Where |
+|---|---|
+| GitHub GraphQL `contributionsCollection` fetch | `src/lib/github.ts` |
+| Sync → `daily_contributions` upsert → streak recompute | `src/lib/sync.ts` |
+| Pure streak / XP math (unit-tested) | `src/lib/streak.ts`, `tests/streak.test.ts` |
+| Hourly full re-sync of every user | `GET /api/cron/sync-all` |
+| Hourly "streak at risk" reminder emails | `GET /api/cron/remind` |
+| Manual sync for the signed-in user | `POST /api/sync` |
+| Dashboard (streak, XP, heatmap, today's goal) | `src/app/dashboard` |
+| Settings (goal, timezone, reminder hour) | `src/app/settings` |
+
+**XP:** 10 / commit · 30 / PR · 20 / review · 5 / issue. Level = ⌊√(XP / 100)⌋.
+
+**Timezones:** streak days follow GitHub's calendar (UTC) so the app always agrees with the graph
+on your profile. Your timezone is only used to decide *when* to send the reminder.
+
+**Private contributions:** the GraphQL call uses your own OAuth token, so your private activity is
+counted (as a total) without needing the `repo` scope.
+
+## Testing the cron routes locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/sync-all
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/remind
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set your reminder hour (Settings) to the current hour and make sure today's goal isn't met — the
+first call to `/remind` sends one email; a second call sends none (`reminder_log` de-dupes).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Push to GitHub, import into Vercel, add every variable from `.env.example`, and update the GitHub
+OAuth App's callback URL to `https://<your-domain>/api/auth/callback/github`. `vercel.json`
+schedules the two cron jobs automatically.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm test          # vitest
+npm run typecheck # tsc --noEmit
+npm run db:push   # apply schema to DATABASE_URL
+npm run db:studio # browse the DB
+```
