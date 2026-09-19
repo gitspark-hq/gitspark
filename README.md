@@ -52,6 +52,8 @@ Resend (email) · GitHub Actions (hourly cron).
 | Hourly "streak at risk" reminder emails | `GET /api/cron/remind` |
 | Manual sync for the signed-in user | `POST /api/sync` |
 | Dashboard (streak, XP, heatmap, today's goal) | `src/app/dashboard` |
+| Grade tab: GitGrade rubric, 13 checks, cached per user | `src/lib/grade`, `src/app/grade` |
+| Analysis tab: written review via Chrome's on-device Gemini Nano | `src/lib/analysis-prompt.ts`, `src/components/profile-analysis.tsx` |
 | Settings (goal, timezone, reminder hour) | `src/app/settings` |
 
 **XP:** 10 / commit · 30 / PR · 20 / review · 5 / issue. Level = ⌊√(XP / 100)⌋.
@@ -71,6 +73,11 @@ writing policies first.
 server connections between clients. Never run session-level statements (`SET ROLE`, `SET search_path`,
 `LISTEN`, advisory locks) on it — they leak into other clients' queries. Use `DIRECT_URL` (session
 pooler) for anything like that.
+
+**Analysis tab:** uses Chrome's built-in Prompt API (Gemini Nano), so it runs entirely in the
+browser and needs Chrome 138+ on desktop with the model enabled. The page explains the two
+`chrome://flags` to flip when it isn't. Profile data never leaves the device. The result is kept in
+`localStorage` per viewer; Regenerate re-runs it against the latest synced data.
 
 **Private contributions:** the GraphQL call uses your own OAuth token, so your private activity is
 counted (as a total) without needing the `repo` scope.
