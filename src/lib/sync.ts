@@ -8,13 +8,65 @@ import { addDays, computeStreak } from "./streak";
 const FULL_SYNC_DAYS = 365;
 const INCREMENTAL_SYNC_DAYS = 7;
 
-export async function getGitHubToken(userId: string) {
+/** Refresh when the token has less than this long left. */
+const REFRESH_MARGIN_MS = 5 * 60 * 1000;
+
+/**
+ * The user's GitHub access token, refreshed if it is about to expire.
+ *
+ * The OAuth App issues 8-hour tokens with a 6-month refresh token. Without
+ * this, every user's sync (and the hourly cron) would break 8 hours after
+ * they signed in.
+ */
+export async function getGitHubToken(userId: string): Promise<string | null> {
   const [acct] = await db
-    .select({ token: accounts.access_token })
+    .select({
+      token: accounts.access_token,
+      refresh: accounts.refresh_token,
+      expiresAt: accounts.expires_at,
+      providerAccountId: accounts.providerAccountId,
+    })
     .from(accounts)
     .where(and(eq(accounts.userId, userId), eq(accounts.provider, "github")))
     .limit(1);
-  return acct?.token ?? null;
+  if (!acct?.token) return null;
+
+  const expiresSoon = acct.expiresAt !== null && acct.expiresAt * 1000 < Date.now() + REFRESH_MARGIN_MS;
+  if (!expiresSoon) return acct.token;
+  if (!acct.refresh) return acct.token; // non-expiring token, or nothing we can do
+
+  const res = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "User-Agent": "gitspark" },
+    body: JSON.stringify({
+      client_id: process.env.AUTH_GITHUB_ID,
+      client_secret: process.env.AUTH_GITHUB_SECRET,
+      grant_type: "refresh_token",
+      refresh_token: acct.refresh,
+    }),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    error?: string;
+    error_description?: string;
+  };
+  if (!res.ok || !body.access_token) {
+    // Refresh token revoked or expired (6 months). The user has to sign in again.
+    throw new GitHubError(body.error_description ?? body.error ?? "Could not refresh GitHub token", 401);
+  }
+
+  await db
+    .update(accounts)
+    .set({
+      access_token: body.access_token,
+      refresh_token: body.refresh_token ?? acct.refresh,
+      expires_at: body.expires_in ? Math.floor(Date.now() / 1000) + body.expires_in : null,
+    })
+    .where(and(eq(accounts.provider, "github"), eq(accounts.providerAccountId, acct.providerAccountId)));
+
+  return body.access_token;
 }
 
 /**

@@ -55,10 +55,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.access_token) {
         await db
           .update(accounts)
-          .set({ access_token: account.access_token, scope: account.scope ?? null, token_type: account.token_type ?? null })
+          .set({
+            access_token: account.access_token,
+            refresh_token: account.refresh_token ?? null,
+            expires_at: account.expires_at ?? null,
+            scope: account.scope ?? null,
+            token_type: account.token_type ?? null,
+          })
           .where(and(eq(accounts.provider, account.provider), eq(accounts.providerAccountId, account.providerAccountId)));
       }
     },
   },
-  pages: { signIn: "/" },
+  pages: { signIn: "/", error: "/auth/error" },
 });

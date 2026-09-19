@@ -69,6 +69,11 @@ no policies, so Supabase's public Data API / `anon` key can't read anything. The
 the table owner (`postgres`) which bypasses RLS. Don't add Supabase client-side queries without
 writing policies first.
 
+**Token expiry:** the OAuth App issues 8-hour access tokens with 6-month refresh tokens.
+`getGitHubToken()` in `src/lib/sync.ts` refreshes transparently when a token has under 5 minutes
+left, so syncs and the hourly cron keep working without the user signing in again. If the refresh
+token itself is dead (revoked, or 6 months old) the user is told to sign out and back in.
+
 **Pooler caveat:** `DATABASE_URL` goes through Supabase's *transaction-mode* pooler, which reuses
 server connections between clients. Never run session-level statements (`SET ROLE`, `SET search_path`,
 `LISTEN`, advisory locks) on it — they leak into other clients' queries. Use `DIRECT_URL` (session
