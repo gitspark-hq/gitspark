@@ -54,7 +54,8 @@ Resend (email) · GitHub Actions (hourly cron).
 | Dashboard (streak, XP, heatmap, today's goal) | `src/app/dashboard` |
 | Grade tab: GitGrade rubric, 13 checks, cached per user | `src/lib/grade`, `src/app/grade` |
 | Analysis tab: written review via Chrome's on-device model | `src/lib/analysis-prompt.ts`, `src/components/profile-analysis.tsx` |
-| Settings (goal, timezone, reminder hour) | `src/app/settings` |
+| Settings (goal, timezone, reminder hour, sharing) | `src/app/settings` |
+| Public profile page + social card | `src/app/u/[login]`, `src/lib/public-profile.ts` |
 
 **XP:** 10 / commit · 30 / PR · 20 / review · 5 / issue. Level = ⌊√(XP / 100)⌋.
 
@@ -78,6 +79,12 @@ token itself is dead (revoked, or 6 months old) the user is told to sign out and
 server connections between clients. Never run session-level statements (`SET ROLE`, `SET search_path`,
 `LISTEN`, advisory locks) on it — they leak into other clients' queries. Use `DIRECT_URL` (session
 pooler) for anything like that.
+
+**Public profiles:** off by default. Turning on sharing in Settings publishes `/u/<login>` with the
+streak, heatmap and repo grade, plus a generated social card (`opengraph-image.tsx`) for link
+previews. The owner can preview the page before enabling it; for everyone else a private profile is
+a 404. Satori, which renders the card, only supports flexbox and needs every text child to be a
+string, so numbers there are wrapped in `String()`.
 
 **Analysis tab:** uses Chrome's built-in Prompt API (on-device model), so it runs entirely in the
 browser and needs Chrome 138+ on desktop with the model enabled. The page explains the two

@@ -13,6 +13,7 @@ import { AutoSync } from "@/components/auto-sync";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { getGrade } from "@/lib/grade";
+import { ShareProfile } from "@/components/share-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,15 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
           </div>
           {first === "1" || neverSynced ? <AutoSync detectTimezone={first === "1"} /> : <SyncButton />}
         </div>
+
+        {user?.publicProfile && user.githubLogin ? (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-5 py-3">
+            <span className="text-[13px] text-muted-foreground">Your public page</span>
+            <div className="min-w-0 flex-1">
+              <ShareProfile login={user.githubLogin} enabled />
+            </div>
+          </div>
+        ) : null}
 
         {/* Summary strip */}
         <div className="grid grid-cols-2 divide-x divide-border rounded-lg border border-border bg-card sm:grid-cols-4">

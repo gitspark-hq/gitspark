@@ -13,6 +13,7 @@ const Settings = z.object({
   timezone: z.string().min(1).max(64),
   reminderHour: z.coerce.number().int().min(0).max(23),
   remindersEnabled: z.boolean(),
+  publicProfile: z.boolean(),
 });
 
 export type SettingsState = { ok?: boolean; error?: string };
@@ -26,6 +27,7 @@ export async function saveSettings(_prev: SettingsState, formData: FormData): Pr
     timezone: formData.get("timezone"),
     reminderHour: formData.get("reminderHour"),
     remindersEnabled: formData.get("remindersEnabled") === "on",
+    publicProfile: formData.get("publicProfile") === "on",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -46,5 +48,6 @@ export async function saveSettings(_prev: SettingsState, formData: FormData): Pr
 
   revalidatePath("/dashboard");
   revalidatePath("/settings");
+  revalidatePath("/u/[login]", "page");
   return { ok: true };
 }

@@ -27,6 +27,8 @@ export const users = pgTable("users", {
   dailyGoal: integer("daily_goal").notNull().default(1),
   reminderHour: integer("reminder_hour").notNull().default(20),
   remindersEnabled: boolean("reminders_enabled").notNull().default(true),
+  /** Opt-in. When false, /u/<login> is a 404 for everyone but the owner. */
+  publicProfile: boolean("public_profile").notNull().default(false),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 }).enableRLS();
 

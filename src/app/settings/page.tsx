@@ -30,8 +30,10 @@ export default async function SettingsPage() {
               timezone: user.timezone,
               reminderHour: user.reminderHour,
               remindersEnabled: user.remindersEnabled,
+              publicProfile: user.publicProfile,
             }}
             timezones={timezones}
+            login={user.githubLogin ?? ""}
           />
         </div>
       </main>

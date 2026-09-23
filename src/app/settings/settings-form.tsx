@@ -1,18 +1,21 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { saveSettings, type SettingsState } from "./actions";
+import { ShareProfile } from "@/components/share-profile";
 
 type Props = {
-  initial: { dailyGoal: number; timezone: string; reminderHour: number; remindersEnabled: boolean };
+  initial: { dailyGoal: number; timezone: string; reminderHour: number; remindersEnabled: boolean; publicProfile: boolean };
   timezones: string[];
+  login: string;
 };
 
 const field =
   "h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring";
 
-export function SettingsForm({ initial, timezones }: Props) {
+export function SettingsForm({ initial, timezones, login }: Props) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(saveSettings, {});
+  const [isPublic, setIsPublic] = useState(initial.publicProfile);
 
   return (
     <form action={action} className="divide-y divide-border">
@@ -41,6 +44,22 @@ export function SettingsForm({ initial, timezones }: Props) {
             <input name="remindersEnabled" type="checkbox" defaultChecked={initial.remindersEnabled} className="h-3.5 w-3.5 accent-foreground" />
             Enabled
           </label>
+        </div>
+      </Row>
+
+      <Row label="Public profile" hint="Gives you a link anyone can open, with your streak, heatmap and repo grade. Off by default.">
+        <div className="w-full space-y-3">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+            <input
+              name="publicProfile"
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="h-3.5 w-3.5 accent-foreground"
+            />
+            Anyone with the link can view it
+          </label>
+          {login ? <ShareProfile login={login} enabled={isPublic} /> : null}
         </div>
       </Row>
 
